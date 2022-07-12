@@ -112,7 +112,7 @@ public class CharacterMovement : MonoBehaviour
     
     private void HandleMouseLook()
     {
-        rotationX -= Input.GetAxis("Mouse X") * lookSpeedY;
+        rotationX -= Input.GetAxis("Mouse Y") * lookSpeedY;
         rotationX = Mathf.Clamp(rotationX, -upperLookLimit, lowerLookLimit);
         _playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0f, 0f);
         transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeedX, 0);
