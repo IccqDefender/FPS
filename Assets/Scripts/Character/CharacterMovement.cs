@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 
@@ -7,6 +6,7 @@ public class CharacterMovement : MonoBehaviour
     public bool CanMove { get; private set; } = true;
     private bool IsSprinting => 
         canSprint && Input.GetKey(sprintKey);
+
     private bool ShouldJump => 
         Input.GetKeyDown(jumpKey) && _characterController.isGrounded;
 
@@ -56,6 +56,7 @@ public class CharacterMovement : MonoBehaviour
 
     private float rotationX = 0;
 
+    //Кэширование
     private void Awake()
     {
         _playerCamera = GetComponentInChildren<Camera>();
@@ -65,11 +66,25 @@ public class CharacterMovement : MonoBehaviour
         Cursor.visible = false;
     }
 
+    
+    //Подписка на update' методы
     private void OnEnable()
     {
         UpdateService.OnUpdate += PlayerControl;
+        CharacterHealth.OnDead += KillCharacter;
+    }
+    private void OnDestroy()
+    {
+        UpdateService.OnUpdate -= PlayerControl;
+        CharacterHealth.OnDead -= KillCharacter;
+    }
+    private void OnDisable()
+    {
+        UpdateService.OnUpdate -= PlayerControl;
+        CharacterHealth.OnDead -= KillCharacter;
     }
 
+    
     private void PlayerControl()
     {
         if (CanMove)
@@ -82,11 +97,10 @@ public class CharacterMovement : MonoBehaviour
             
             if (canCrouch)
                 HandleCrouch();
-            
+
             ApplyFinalMovements();
         }
     }
-
     private void HandleMovementInput()
     {
         _currentInput = new Vector2((isCrouching ? crouchSpeed : IsSprinting ? sprintSpeed : walkSpeed) * Input.GetAxis("Vertical"),
@@ -97,19 +111,16 @@ public class CharacterMovement : MonoBehaviour
                          (transform.TransformDirection(Vector3.right) * _currentInput.y);
         _moveDirection.y = moveDirectionY;
     }
-
     private void HandleJump()
     {
         if (ShouldJump)
             _moveDirection.y = jumpForce;
     }
-
     private void HandleCrouch()
     {
         if (ShouldCrouch)
             StartCoroutine(CrouchStand());
     }
-    
     private void HandleMouseLook()
     {
         rotationX -= Input.GetAxis("Mouse Y") * lookSpeedY;
@@ -117,14 +128,19 @@ public class CharacterMovement : MonoBehaviour
         _playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0f, 0f);
         transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeedX, 0);
     }
-
     private void ApplyFinalMovements()
     {
         if (!_characterController.isGrounded)
             _moveDirection.y -= gravity * Time.deltaTime;
         _characterController.Move(_moveDirection * Time.deltaTime);
     }
-
+    private void KillCharacter()
+    {
+        this.gameObject.SetActive(false);
+        CanMove = false;
+        CharacterHealth.canHealing = false;
+    }
+    
     private IEnumerator CrouchStand()
     {
         if(isCrouching && Physics.Raycast(_playerCamera.transform.position, Vector3.up, 1f))
